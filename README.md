@@ -18,7 +18,7 @@ logger.critical({fooest:'barest'});
 
 ```
 {
-    "paths" : {
+    'paths' : {
         'info' : '/path/to/info.log'
       , 'warn' : '/path/to/warn.log'
       , 'critical' : '/path/to/critical.log'

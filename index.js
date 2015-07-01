@@ -1,5 +1,5 @@
 var fs = require('fs');
-var utils = require('zefti-utils')({});
+var utils = require('zefti-utils');
 var config = require('zefti-config');
 var interval = config.logCleanerInterval || 10;
 
@@ -51,6 +51,7 @@ function Logger(options){
   if (!options) options = {};
   if (!options.paths) options.paths = {};
   if (!options.rotate) options.rotate = {};
+  var writeInterval = options.writeInterval || 500;
   self.logTypes = {};
 
   for (var key in options.rotate) {
@@ -61,51 +62,57 @@ function Logger(options){
   for (var path in options.paths) {
     (function(){
       var logType = path;
+      var buffers = {};
       if (!self.logTypes[path]) self.logTypes[path] = {};
       activeLogs[path] = {};
       self.logTypes[path].configPath = options.paths[path];
       self.parseFileInfo(path, self.logTypes[path]);
+
+      setInterval(function(){
+        var now = new Date();
+        for(var key in buffers) {
+          if (activeLogs[logType][key]) {
+            activeLogs[logType][key].write(buffers[key]);
+            delete buffers[key];
+          } else {
+            activeLogs[logType][key] = fs.createWriteStream(self.logTypes[logType].directory + '/' + key, {flags:'a'});
+            activeLogs[logType][key].on('finish', function(){
+              delete activeLogs[logType][key]
+            });
+            if (self.logTypes[logType].rotateSeconds) {
+              activeLogs[logType][key].expiration = new Date(now.getTime() + (self.logTypes[logType].rotateSeconds*1000) + 10000);
+            }
+            activeLogs[logType][key].write(buffers[key]);
+            delete buffers[key];
+          }
+        }
+      }, writeInterval);
+
       Logger.prototype[logType] = function(msg){
+        //return;
         var now = new Date();
         var logName = getLogName(self.logTypes[logType]);
-        if (utils.type(msg) === 'string'){
-          var errObj = {msg:msg, date: now};
-          if (activeLogs[logType][logName]) {
-            activeLogs[logType][logName].write(JSON.stringify(errObj) + '\n');
-          } else {
-            activeLogs[logType][logName] = fs.createWriteStream(self.logTypes[logType].directory + '/' + logName, {flags:'a'});
-            activeLogs[logType][logName].on('finish', function(){
-              console.log('JUST CLOSED: ' + logName);
-              delete activeLogs[logType][logName]
-            });
-            if (self.logTypes[logType].rotateSeconds) {
-              activeLogs[logType][logName].expiration = new Date(now.getTime() + (self.logTypes[logType].rotateSeconds*1000) + 10000);
-            }
-            activeLogs[logType][logName].write(JSON.stringify(errObj) + '\n');
-          }
-        } else if (utils.type(msg) === 'object'){
-          msg.date = now;
-          if (activeLogs[logType][logName]) {
-            activeLogs[logType][logName].write(JSON.stringify(msg) + '\n');
-          } else {
-            activeLogs[logType][logName] = fs.createWriteStream(self.logTypes[logType].directory + '/' + logName, {flags:'a'});
-            activeLogs[logType][logName].on('finish', function(){
-              console.log('JUST CLOSED: ' + logName);
-              delete activeLogs[logType][logName]
-            });
-            if (self.logTypes[logType].rotateSeconds) {
-              activeLogs[logType][logName].expiration = new Date(now.getTime() + (self.logTypes[logType].rotateSeconds*1000) + 10000);
-            }
-            activeLogs[logType][logName].write(JSON.stringify(msg) + '\n');
-          }
+        var errObj = null;
+        //logName = 'testing.log';
+        if (utils.type(msg) === 'string') {
+          errObj = {msg : msg, date : now};
+        } else if (utils.type(msg) === 'object') {
+          errObj = msg;
+          errObj.date = now;
         } else {
           throw new Error('log message must be a string or an object');
+        }
+
+        if (buffers[logName]) {
+          buffers[logName] = buffers[logName] + JSON.stringify(errObj) + '\n';
+        } else {
+          buffers[logName] = JSON.stringify(errObj) + '\n';
         }
       }
     })();
   }
 
-  console.log(this.logTypes);
+  //console.log(this.logTypes);
 }
 
 function parseRotate(str, obj){
@@ -123,15 +130,10 @@ function parseRotate(str, obj){
   obj.rotateFormat = unitMap[rotateKey[obj.unit]].format;
 }
 
-Logger.prototype.constructLogPath = function(logObj){
-  var logName
-  //logObj.currentLogPath =
-};
-
 
 Logger.prototype.parseFileInfo = function(logName, logObj){
   if (utils.type(logObj.configPath) !== 'string') throw new Error('Paths in logger must be strings');
-  if (logObj.configPath[0] !== '/') throw new Error('Paths in logger must start with a /');
+  if (logObj.configPath[0] !== '/' && logObj.configPath[0] !== '.' && logObj.configPath[0] !== '..') throw new Error('Paths in logger must start with a / . or ..');
   if (logObj.configPath[logObj.configPath.length - 1] === '/') {
     utils.createDirectory(logObj.configPath);
     logObj.directory = logObj.configPath;
@@ -164,20 +166,20 @@ function getLogName(logObj){
   var rotateString = '';
   if (logObj.rotateFormat){
     var now = new Date();
-    var month = now.getMonth();
-    if (month.length === 1) month = '0' + (month +1).toString();
+    var month = now.getMonth() + 1;
+    if (month.toString().length === 1) month = '0' + (month +1).toString();
     var day = now.getDate();
-    if (day.length === 1) day = '0' + day.toString();
+    if (day.toString().length === 1) day = '0' + day.toString();
     var hour = now.getHours();
     var minute = now.getMinutes();
-    if (minute.length === 1) minute = '0' + minute.toString();
+    if (minute.toString().length === 1) minute = '0' + minute.toString();
     var dateObj = {
         yyyy : now.getFullYear()
-      , mm : month + 1
+      , mm : month
       , dd : day
       , hh : hour
       , minmin : minute
-    }
+    };
     var logRotateArr = logObj.rotateFormat.split('_');
     logRotateArr.forEach(function(item){
       rotateString = rotateString + '_' + dateObj[item];
@@ -187,19 +189,6 @@ function getLogName(logObj){
   if (logObj.extension) logName = logName + '.' + logObj.extension;
   return logName;
 }
-
-var logger = new Logger({
-  "paths" : {
-      'info' : '/path/to/info.log'
-/*    , 'warn' : '/path/to/warn.log'
-    , 'critical' : '/path/to'*/
-  },
-  'rotate' : {
-      'info' : '1m'
-    , 'warn' : '1h'
-    , 'critical' : '2days'
-  }
-});
 
 function cleaner(interval){
   var x = setInterval(function(){
@@ -217,10 +206,25 @@ function cleaner(interval){
 
 cleaner(interval);
 
-/*
-var x = setInterval(function(){
-  logger.info('im here');
-}, 10000);
-  */
-
 module.exports = Logger;
+
+
+
+//for testing
+var logger = new Logger({
+  "paths" : {
+    'info' : '/path/to/bloggity.log'
+    /*    , 'warn' : '/path/to/warn.log'
+     , 'critical' : '/path/to'*/
+  },
+  'rotate' : {
+    'info' : '1m'
+    , 'warn' : '1h'
+    , 'critical' : '2days'
+  }
+});
+
+/*
+ var x = setInterval(function(){
+ logger.info('im here');
+ }, 1); */

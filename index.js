@@ -207,5 +207,3 @@ function cleaner(interval){
 cleaner(interval);
 
 module.exports = Logger;
-
-console.log(bobxx);

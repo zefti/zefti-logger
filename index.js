@@ -208,23 +208,4 @@ cleaner(interval);
 
 module.exports = Logger;
 
-
-
-//for testing
-var logger = new Logger({
-  "paths" : {
-    'info' : '/path/to/bloggity.log'
-    /*    , 'warn' : '/path/to/warn.log'
-     , 'critical' : '/path/to'*/
-  },
-  'rotate' : {
-    'info' : '1m'
-    , 'warn' : '1h'
-    , 'critical' : '2days'
-  }
-});
-
-/*
- var x = setInterval(function(){
- logger.info('im here');
- }, 1); */
+console.log(bobxx);

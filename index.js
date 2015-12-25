@@ -112,7 +112,6 @@ function Logger(options){
     })();
   }
 
-  //console.log(this.logTypes);
 }
 
 function parseRotate(str, obj){

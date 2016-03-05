@@ -72,9 +72,18 @@ function Logger(options){
         var now = new Date();
         for(var key in buffers) {
           if (activeLogs[logType][key]) {
-            activeLogs[logType][key].write(buffers[key]);
-            delete buffers[key];
+            fs.stat(self.logTypes[logType].directory + '/' + key, function(err, res) {
+              if (err) {
+                //console.log('DELETING BECAUSE FILE IS NO LONGER THERE');
+                activeLogs[logType][key].end();
+              } else {
+                //console.log('ALL GOOD');
+                activeLogs[logType][key].write(buffers[key]);
+                delete buffers[key];
+              }
+            });
           } else {
+            //console.log('creating')
             activeLogs[logType][key] = fs.createWriteStream(self.logTypes[logType].directory + '/' + key, {flags:'a'});
             activeLogs[logType][key].on('finish', function(){
               delete activeLogs[logType][key]
@@ -90,15 +99,15 @@ function Logger(options){
 
       Logger.prototype[logType] = function(msg){
         //return;
-        var now = new Date();
+        var now = new Date().toISOString();
         var logName = getLogName(self.logTypes[logType]);
         var errObj = null;
         //logName = 'testing.log';
         if (utils.type(msg) === 'string') {
-          errObj = {msg : msg, date : now};
+          errObj = {msg : msg, st : now};
         } else if (utils.type(msg) === 'object') {
           errObj = msg;
-          errObj.date = now;
+          errObj.st = now;
         } else {
           throw new Error('log message must be a string or an object');
         }

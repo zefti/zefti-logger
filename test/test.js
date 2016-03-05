@@ -128,15 +128,15 @@ describe('info log 5 minute timeout', function() {
   });
 
   it('should have a timestamp', function(done){
-    assert(parsedLogLines[0].date);
+    assert(parsedLogLines[0].st);
     done();
   });
 
   it('timestamp should be between beginning of test and now', function(done){
-    var ts = new Date(parsedLogLines[0].date);
+    var ts = new Date(parsedLogLines[0].st);
     var current = new Date();
-    assert.equal(true, ts < current);
-    assert.equal(true, ts > now);
+    assert.equal(true, ts <= current);
+    assert.equal(true, ts >= now);
     done();
   });
 
@@ -199,12 +199,12 @@ describe('info log 1 hour timeout', function() {
   });
 
   it('should have a timestamp', function(done){
-    assert(parsedLogLines[0].date);
+    assert(parsedLogLines[0].st);
     done();
   });
 
   it('timestamp should be between beginning of test and now', function(done){
-    var ts = new Date(parsedLogLines[0].date);
+    var ts = new Date(parsedLogLines[0].st);
     var current = new Date();
     assert.equal(true, ts < current);
     assert.equal(true, ts > now);
@@ -270,12 +270,12 @@ describe('info log 1 day timeout', function() {
   });
 
   it('should have a timestamp', function(done){
-    assert(parsedLogLines[0].date);
+    assert(parsedLogLines[0].st);
     done();
   });
 
   it('timestamp should be between beginning of test and now', function(done){
-    var ts = new Date(parsedLogLines[0].date);
+    var ts = new Date(parsedLogLines[0].st);
     var current = new Date();
     assert.equal(true, ts < current);
     assert.equal(true, ts > now);
@@ -340,12 +340,12 @@ describe('random log 5 minute timeout', function() {
   });
 
   it('should have a timestamp', function(done){
-    assert(parsedLogLines[0].date);
+    assert(parsedLogLines[0].st);
     done();
   });
 
   it('timestamp should be between beginning of test and now', function(done){
-    var ts = new Date(parsedLogLines[0].date);
+    var ts = new Date(parsedLogLines[0].st);
     var current = new Date();
     assert.equal(true, ts < current);
     assert.equal(true, ts > now);
@@ -409,12 +409,12 @@ describe('warn no timeout', function() {
   });
 
   it('should have a timestamp', function(done){
-    assert(parsedLogLines[0].date);
+    assert(parsedLogLines[0].st);
     done();
   });
 
   it('timestamp should be between beginning of test and now', function(done){
-    var ts = new Date(parsedLogLines[0].date);
+    var ts = new Date(parsedLogLines[0].st);
     var current = new Date();
     assert.equal(true, ts < current);
     assert.equal(true, ts > now);

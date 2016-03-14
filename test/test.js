@@ -4,7 +4,6 @@
  */
 
 var assert = require('assert');
-var controlFlow = require('../index.js');
 var Logger = require('../index.js');
 var fs = require('fs');
 var utils = require('zefti-utils');
